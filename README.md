@@ -1,1 +1,1 @@
-# Vizualizator de Algoritmi
+# Algorithms visualiser

@@ -4,7 +4,7 @@ import PathfindingVisualiser from './components/PathfindingVisualiser'
 function App() {
   return (
     <div className="App">
-      <h1>Vizualizator de Algoritmi</h1>
+      <h1>Algorithms visualiser</h1>
       <PathfindingVisualiser />
     </div>
   )
