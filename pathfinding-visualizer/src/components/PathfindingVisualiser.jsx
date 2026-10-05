@@ -12,6 +12,7 @@ const FINISH_NODE_COL = 39;
 export default function PathfindingVisualiser() {
     const [grid, setGrid] = useState([]);
     const [mouseIsPressed, setMouseIsPressed] = useState(false);
+    const [isRunning, setIsRunning] = useState(false);
     const timeoutIds = useRef([]);
 
     const clearAllTimeouts = () => {
@@ -41,6 +42,7 @@ export default function PathfindingVisualiser() {
     }, []);
 
     const handleMouseDown = (row, col, e) => {
+        if (isRunning) return;
         const makeWall = !e.shiftKey;
         const newGrid = getNewGridWithWallToggled(grid, row, col, makeWall);
         setGrid(newGrid);
@@ -48,7 +50,7 @@ export default function PathfindingVisualiser() {
     };
     
     const handleMouseEnter = (row, col, e) => {
-        if (!mouseIsPressed) return;
+        if (!mouseIsPressed || isRunning) return;
         const makeWall = !e.shiftKey;
         const newGrid = getNewGridWithWallToggled(grid, row, col, makeWall);
         setGrid(newGrid);
@@ -68,6 +70,10 @@ export default function PathfindingVisualiser() {
             }, 50*i);
             timeoutIds.current.push(timeoutId);
         }
+        const finalTimeout = setTimeout(() => {
+            setIsRunning(false);
+        }, 50 * nodesInShortestPathOrder.length);
+        timeoutIds.current.push(finalTimeout);
     };
 
     const animateDijkstra = (visitedNodesInOrder, nodesInShortestPathOrder) => {
@@ -93,6 +99,7 @@ export default function PathfindingVisualiser() {
     const visualiseDijkstra = () => {
     // Each run of the algorithm should be done on a clear matrix, obviously
     clearAllTimeouts();
+    setIsRunning(true);  // Drawing walls is now forbidden during the animation
     const cleanGrid = grid.slice();
     for (let row = 0; row < 20; row++) {
       for (let col = 0; col < 50; col++) {
