@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Node from './Node';
 import './PathfindingVisualiser.css';
 import { dijkstra, getNodesInShortestPathOrder } from './dijkstra';
@@ -12,6 +12,13 @@ const FINISH_NODE_COL = 39;
 export default function PathfindingVisualiser() {
     const [grid, setGrid] = useState([]);
     const [mouseIsPressed, setMouseIsPressed] = useState(false);
+    const timeoutIds = useRef([]);
+
+    const clearAllTimeouts = () => {
+        timeoutIds.current.forEach(timeoutId => clearTimeout(timeoutId));
+        timeoutIds.current = [];
+    }
+
 
     // useEffect runs once, at the start of the app
     useEffect(() => {
@@ -54,34 +61,38 @@ export default function PathfindingVisualiser() {
 /////////////////////// Dijkstra AREA ///////////////////////
     const animateShortestPath = (nodesInShortestPathOrder) => {
         for (let i = 0; i < nodesInShortestPathOrder.length; i++) {
-            setTimeout(() => {
+            const timeoutId = setTimeout(() => {
                 const node = nodesInShortestPathOrder[i];
                 if (!node.isStart && !node.isFinish) 
                     document.getElementById(`node-${node.row}-${node.col}`).className = "node node-shortest-path";
             }, 50*i);
+            timeoutIds.current.push(timeoutId);
         }
     };
 
     const animateDijkstra = (visitedNodesInOrder, nodesInShortestPathOrder) => {
         for (let i = 0; i <= visitedNodesInOrder.length; i++) {
             if (i === visitedNodesInOrder.length) {
-                setTimeout(() => {
+                const timeoutId = setTimeout(() => {
                     animateShortestPath(nodesInShortestPathOrder);
                 }, 10*i);
+                timeoutIds.current.push(timeoutId);
                 return;
             }
 
             // Finding animation
-            setTimeout(() => {
+            const timeoutId = setTimeout(() => {
                 const node = visitedNodesInOrder[i];
                 if (!node.isStart && !node.isFinish)
                     document.getElementById(`node-${node.row}-${node.col}`).className = 'node node-visited';
             }, 10*i);
+            timeoutIds.current.push(timeoutId);
         }
     };
 
     const visualiseDijkstra = () => {
     // Each run of the algorithm should be done on a clear matrix, obviously
+    clearAllTimeouts();
     const cleanGrid = grid.slice();
     for (let row = 0; row < 20; row++) {
       for (let col = 0; col < 50; col++) {
