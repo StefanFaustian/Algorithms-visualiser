@@ -4,15 +4,16 @@ import './PathfindingVisualiser.css';
 import { dijkstra, getNodesInShortestPathOrder } from './dijkstra';
 
 // Defining coordinates for the starting node and the finish node
-const START_NODE_ROW = 9;
-const START_NODE_COL = 10;
-const FINISH_NODE_ROW = 14;
-const FINISH_NODE_COL = 39;
+const START_NODE_ROW = 0;
+const START_NODE_COL = 0;
+const FINISH_NODE_ROW = 19;
+const FINISH_NODE_COL = 49;
 
 export default function PathfindingVisualiser() {
     const [grid, setGrid] = useState([]);
     const [mouseIsPressed, setMouseIsPressed] = useState(false);
     const [isRunning, setIsRunning] = useState(false);
+    const [pressedNodeType, setPressedNodeType] = useState('wall');
     const timeoutIds = useRef([]);
 
     const clearAllTimeouts = () => {
@@ -43,21 +44,40 @@ export default function PathfindingVisualiser() {
 
     const handleMouseDown = (row, col, e) => {
         if (isRunning) return;
-        const makeWall = !e.shiftKey;
-        const newGrid = getNewGridWithWallToggled(grid, row, col, makeWall);
-        setGrid(newGrid);
+        if (e.button !== 0) return;
+        const node = grid[row][col];
+        if (node.isStart) setPressedNodeType('start');
+        else if (node.isFinish) setPressedNodeType('finish');
+        else {
+            const makeWall = !e.shiftKey;
+            const newGrid = getNewGridWithWallToggled(grid, row, col, makeWall);
+            setGrid(newGrid);
+        }
         setMouseIsPressed(true);
     };
     
     const handleMouseEnter = (row, col, e) => {
         if (!mouseIsPressed || isRunning) return;
-        const makeWall = !e.shiftKey;
-        const newGrid = getNewGridWithWallToggled(grid, row, col, makeWall);
-        setGrid(newGrid);
+        const targetNode = grid[row][col];
+        if (pressedNodeType === 'start') { 
+            if (targetNode.isWall || targetNode.isFinish) return;
+            const newGrid = getNewGridWithNodeMoved(grid, row, col, 'start'); 
+            setGrid(newGrid); 
+        } else if (pressedNodeType === 'finish') { 
+            if (targetNode.isWall || targetNode.isStart) return;
+            const newGrid = getNewGridWithNodeMoved(grid, row, col, 'finish'); 
+            setGrid(newGrid); 
+        } else {
+            if (targetNode.isStart || targetNode.isFinish) return;
+            const makeWall = !e.shiftKey;
+            const newGrid = getNewGridWithWallToggled(grid, row, col, makeWall);
+            setGrid(newGrid);
+        }
     };
 
     const handleMouseUp = () => {
         setMouseIsPressed(false);
+        setPressedNodeType('wall');
     };
 
 /////////////////////// Dijkstra AREA ///////////////////////
@@ -115,8 +135,12 @@ export default function PathfindingVisualiser() {
       }
     }
     
-    const startNode = cleanGrid[START_NODE_ROW][START_NODE_COL];
-    const finishNode = cleanGrid[FINISH_NODE_ROW][FINISH_NODE_COL];
+    let startNode, finishNode;
+    for (let row = 0; row < 20; row++)
+        for (let col = 0; col < 50; col++) {
+            if (cleanGrid[row][col].isStart) startNode = cleanGrid[row][col];
+            if (cleanGrid[row][col].isFinish) finishNode = cleanGrid[row][col];
+    }
     
     const visitedNodesInOrder = dijkstra(cleanGrid, startNode, finishNode);
     const nodesInShortestPathOrder = getNodesInShortestPathOrder(finishNode);
@@ -162,5 +186,21 @@ const getNewGridWithWallToggled = (grid, row, col, makeWall) => {
     newGrid[row][col] = newNode;
     return newGrid;
 };
+
+const getNewGridWithNodeMoved = (grid, row, col, type) => {
+    const newGrid = grid.slice();
+    for (let r = 0; r < 20; r++)
+        for (let c = 0; c < 50; c++) {
+            if (newGrid[r][c].isStart && type === 'start') newGrid[r][c] = {...newGrid[r][c], isStart: false};
+            if (newGrid[r][c].isFinish && type === 'finish') newGrid[r][c] = {...newGrid[r][c], isFinish: false};
+    }
+    const node = newGrid[row][col];
+    newGrid[row][col] = {...node, 
+        isStart: type === 'start' ? true : node.isStart,
+        isFinish: type === 'finish' ? true : node.isFinish,
+        isWall: false
+    };
+    return newGrid;
+}
 
 
