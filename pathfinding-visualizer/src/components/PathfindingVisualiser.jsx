@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import Node from './Node';
 import './PathfindingVisualiser.css';
 import { dijkstra, getNodesInShortestPathOrder } from './dijkstra';
+import { bfs } from './bfs';
+import { dfs } from './dfs';
 
 // Defining coordinates for the starting node and the finish node
 const START_NODE_ROW = 0;
@@ -101,24 +103,7 @@ export default function PathfindingVisualiser() {
         setPressedNodeType('wall');
     };
 
-/////////////////////// Dijkstra AREA ///////////////////////
-    const animateShortestPath = (nodesInShortestPathOrder, cost) => {
-        for (let i = 0; i < nodesInShortestPathOrder.length; i++) {
-            const timeoutId = setTimeout(() => {
-                const node = nodesInShortestPathOrder[i];
-                if (!node.isStart && !node.isFinish) 
-                    document.getElementById(`node-${node.row}-${node.col}`).className = "node node-shortest-path";
-            }, 50*i);
-            timeoutIds.current.push(timeoutId);
-        }
-        const finalTimeout = setTimeout(() => {
-            setIsRunning(false);
-            setPathCost(cost);
-        }, 50 * nodesInShortestPathOrder.length);
-        timeoutIds.current.push(finalTimeout);
-    };
-
-    const animateDijkstra = (visitedNodesInOrder, nodesInShortestPathOrder, cost) => {
+const animateAlgorithm = (visitedNodesInOrder, nodesInShortestPathOrder, cost) => {
         for (let i = 0; i <= visitedNodesInOrder.length; i++) {
             if (i === visitedNodesInOrder.length) {
                 const timeoutId = setTimeout(() => {
@@ -138,55 +123,69 @@ export default function PathfindingVisualiser() {
         }
     };
 
-    const visualiseDijkstra = () => {
-    // Each run of the algorithm should be done on a clear matrix, obviously
-    clearAllTimeouts();
-    setIsRunning(true);  // Drawing walls is now forbidden during the animation
-    const cleanGrid = grid.map(row => 
+    const animateShortestPath = (nodesInShortestPathOrder, cost) => {
+        for (let i = 0; i < nodesInShortestPathOrder.length; i++) {
+            const timeoutId = setTimeout(() => {
+                const node = nodesInShortestPathOrder[i];
+                if (!node.isStart && !node.isFinish) 
+                    document.getElementById(`node-${node.row}-${node.col}`).className = "node node-shortest-path";
+            }, 50*i);
+            timeoutIds.current.push(timeoutId);
+        }
+        const finalTimeout = setTimeout(() => {
+            setIsRunning(false);
+            setPathCost(cost);
+        }, 50 * nodesInShortestPathOrder.length);
+        timeoutIds.current.push(finalTimeout);
+    };
+
+    const visualiseAlgorithm = (algorithm) => {
+        clearAllTimeouts();
+        setIsRunning(true);
+
+        const cleanGrid = grid.map(row => 
         row.map(node => {
             if (!node.isStart && !node.isFinish && !node.isWall) 
                 document.getElementById(`node-${node.row}-${node.col}`).className = 'node';
             return {...node, distance: Infinity, isVisited: false, previousNode: null};
-        })
-    );
-    // const cleanGrid = grid.slice();
-    // for (let row = 0; row < 20; row++) {
-    //   for (let col = 0; col < 50; col++) {
-    //     const node = cleanGrid[row][col];
-        
-    //     node.distance = Infinity;
-    //     node.isVisited = false;
-    //     node.previousNode = null;
-        
-    //     // All cells get erased except START, FINISH and WALL nodes
-    //     if (!node.isStart && !node.isFinish && !node.isWall)
-    //       document.getElementById(`node-${node.row}-${node.col}`).className = 'node';
-    //   }
-    // }
-    
-    let startNode, finishNode;
-    for (let row = 0; row < 20; row++)
-        for (let col = 0; col < 50; col++) {
-            if (cleanGrid[row][col].isStart) startNode = cleanGrid[row][col];
-            if (cleanGrid[row][col].isFinish) finishNode = cleanGrid[row][col];
+            })
+        );
+
+        let startNode, finishNode;
+        for (let row = 0; row < 20; row++)
+            for (let col = 0; col < 50; col++) {
+                if (cleanGrid[row][col].isStart) startNode = cleanGrid[row][col];
+                if (cleanGrid[row][col].isFinish) finishNode = cleanGrid[row][col];
+            }
+
+        setPathCost(null);
+        let visitedNodesInOrder;
+        if (algorithm === "DIJKSTRA")
+            visitedNodesInOrder = dijkstra(cleanGrid, startNode, finishNode);
+        else if (algorithm === "BFS") 
+            visitedNodesInOrder = bfs(cleanGrid, startNode, finishNode);
+        else if (algorithm === "DFS") 
+            visitedNodesInOrder = dfs(cleanGrid, startNode, finishNode);
+
+        const nodesInShortestPathOrder = getNodesInShortestPathOrder(finishNode);
+        animateAlgorithm(visitedNodesInOrder, nodesInShortestPathOrder, finishNode.distance);
     }
-    
-    setPathCost(null);
-    const visitedNodesInOrder = dijkstra(cleanGrid, startNode, finishNode);
-    const nodesInShortestPathOrder = getNodesInShortestPathOrder(finishNode);
-    
-    animateDijkstra(visitedNodesInOrder, nodesInShortestPathOrder, finishNode.distance);
-  };
-/////////////////////// Dijkstra AREA ///////////////////////
-    
+
     return (
         <>
         <div className='button-container'>
             <button
-                onClick={() => visualiseDijkstra()}
-                /*style={{ margin: '20px', padding: '10px 20px', fontSize: '18px', cursor: 'pointer' }}*/
+                onClick={() => visualiseAlgorithm("DIJKSTRA")}
             >
                 Run Dijkstra</button>
+            <button
+                onClick={() => visualiseAlgorithm("BFS")}            
+            >
+                Run BFS</button>
+            <button
+                onClick={() => visualiseAlgorithm("DFS")}            
+            >
+                Run DFS</button>
             <button
                 onClick={() => clearBoard()}
             >Clear board</button>
