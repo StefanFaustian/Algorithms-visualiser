@@ -7,7 +7,8 @@ export function dijkstra(grid, startNode, finishNode) {
         const closestNode = unvisitedNodes.shift();
         
         if (closestNode.isWall) continue; // walls are not explored, they are omitted
-        
+        if (closestNode.distance === Infinity) return visitedNodesInOrder;
+
         closestNode.isVisited = true;
         visitedNodesInOrder.push(closestNode);
 
@@ -24,8 +25,11 @@ function sortNodesByDistance(unvisitedNodes) {
 function updateUnvisitedNeighbours(node, grid) {
     const unvisitedNeighbours = getUnvisitedNeighbours(node, grid);
     for (const neighbour of unvisitedNeighbours) {
-        neighbour.distance = node.distance + 1;
-        neighbour.previousNode = node;
+        const newCostToNeighbour = node.distance + neighbour.weight;
+        if (newCostToNeighbour < neighbour.distance) {
+            neighbour.distance = newCostToNeighbour;
+            neighbour.previousNode = node;
+        }
     }
 }
 

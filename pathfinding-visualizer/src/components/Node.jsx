@@ -2,7 +2,7 @@ import React from 'react';
 import './Node.css';
 
 export default function Node({row, col, 
-    isStart, isFinish, isWall, 
+    isStart, isFinish, isWall, weight,
     onMouseDown, onMouseEnter, onMouseUp}) {
     const extractClassName = isStart ? 'node-start' : isFinish ? 'node-finish' : isWall ? 'node-wall' : '';
 
@@ -14,6 +14,8 @@ export default function Node({row, col,
         onMouseEnter={(e) => onMouseEnter(row, col, e)}
         onMouseUp={() => onMouseUp()}
         onDragStart={(e) => e.preventDefault()}
-        ></div>
+        >
+            {!isWall && !isStart && !isFinish ? weight : null}
+        </div>
     );
 }

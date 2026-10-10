@@ -14,6 +14,7 @@ export default function PathfindingVisualiser() {
     const [mouseIsPressed, setMouseIsPressed] = useState(false);
     const [isRunning, setIsRunning] = useState(false);
     const [pressedNodeType, setPressedNodeType] = useState('wall');
+    const [pathCost, setPathCost] = useState(null);
     const timeoutIds = useRef([]);
 
     const clearAllTimeouts = () => {
@@ -21,6 +22,25 @@ export default function PathfindingVisualiser() {
         timeoutIds.current = [];
     }
 
+    const clearBoard = () => {
+        clearAllTimeouts();
+        setIsRunning(false);
+        const newGrid = [];
+        for (let row = 0; row < 20; row++) {
+            const currentRow = [];
+            for (let col = 0; col < 50; col++) {
+                const node = grid[row][col];
+                const newNode = {...node, isWall: false, distance: Infinity, isVisited: false, previousNode: null};
+                currentRow.push(newNode);
+
+                if (newNode.isStart) document.getElementById(`node-${row}-${col}`).className = 'node node-start';
+                else if (newNode.isFinish) document.getElementById(`node-${row}-${col}`).className = 'node node-finish';
+                else document.getElementById(`node-${row}-${col}`).className = 'node';
+            }
+            newGrid.push(currentRow);
+        }
+        setGrid(newGrid);
+    }
 
     // useEffect runs once, at the start of the app
     useEffect(() => {
@@ -35,6 +55,7 @@ export default function PathfindingVisualiser() {
                     distance: Infinity,
                     isVisited: false,
                     previousNode: null,
+                    weight: Math.floor(Math.random() * 20) + 1,
                 });
             }
             initialGrid.push(currentRow);
@@ -81,7 +102,7 @@ export default function PathfindingVisualiser() {
     };
 
 /////////////////////// Dijkstra AREA ///////////////////////
-    const animateShortestPath = (nodesInShortestPathOrder) => {
+    const animateShortestPath = (nodesInShortestPathOrder, cost) => {
         for (let i = 0; i < nodesInShortestPathOrder.length; i++) {
             const timeoutId = setTimeout(() => {
                 const node = nodesInShortestPathOrder[i];
@@ -92,15 +113,16 @@ export default function PathfindingVisualiser() {
         }
         const finalTimeout = setTimeout(() => {
             setIsRunning(false);
+            setPathCost(cost);
         }, 50 * nodesInShortestPathOrder.length);
         timeoutIds.current.push(finalTimeout);
     };
 
-    const animateDijkstra = (visitedNodesInOrder, nodesInShortestPathOrder) => {
+    const animateDijkstra = (visitedNodesInOrder, nodesInShortestPathOrder, cost) => {
         for (let i = 0; i <= visitedNodesInOrder.length; i++) {
             if (i === visitedNodesInOrder.length) {
                 const timeoutId = setTimeout(() => {
-                    animateShortestPath(nodesInShortestPathOrder);
+                    animateShortestPath(nodesInShortestPathOrder, cost);
                 }, 10*i);
                 timeoutIds.current.push(timeoutId);
                 return;
@@ -120,20 +142,27 @@ export default function PathfindingVisualiser() {
     // Each run of the algorithm should be done on a clear matrix, obviously
     clearAllTimeouts();
     setIsRunning(true);  // Drawing walls is now forbidden during the animation
-    const cleanGrid = grid.slice();
-    for (let row = 0; row < 20; row++) {
-      for (let col = 0; col < 50; col++) {
-        const node = cleanGrid[row][col];
+    const cleanGrid = grid.map(row => 
+        row.map(node => {
+            if (!node.isStart && !node.isFinish && !node.isWall) 
+                document.getElementById(`node-${node.row}-${node.col}`).className = 'node';
+            return {...node, distance: Infinity, isVisited: false, previousNode: null};
+        })
+    );
+    // const cleanGrid = grid.slice();
+    // for (let row = 0; row < 20; row++) {
+    //   for (let col = 0; col < 50; col++) {
+    //     const node = cleanGrid[row][col];
         
-        node.distance = Infinity;
-        node.isVisited = false;
-        node.previousNode = null;
+    //     node.distance = Infinity;
+    //     node.isVisited = false;
+    //     node.previousNode = null;
         
-        // All cells get erased except START, FINISH and WALL nodes
-        if (!node.isStart && !node.isFinish && !node.isWall)
-          document.getElementById(`node-${node.row}-${node.col}`).className = 'node';
-      }
-    }
+    //     // All cells get erased except START, FINISH and WALL nodes
+    //     if (!node.isStart && !node.isFinish && !node.isWall)
+    //       document.getElementById(`node-${node.row}-${node.col}`).className = 'node';
+    //   }
+    // }
     
     let startNode, finishNode;
     for (let row = 0; row < 20; row++)
@@ -142,26 +171,32 @@ export default function PathfindingVisualiser() {
             if (cleanGrid[row][col].isFinish) finishNode = cleanGrid[row][col];
     }
     
+    setPathCost(null);
     const visitedNodesInOrder = dijkstra(cleanGrid, startNode, finishNode);
     const nodesInShortestPathOrder = getNodesInShortestPathOrder(finishNode);
     
-    animateDijkstra(visitedNodesInOrder, nodesInShortestPathOrder);
+    animateDijkstra(visitedNodesInOrder, nodesInShortestPathOrder, finishNode.distance);
   };
 /////////////////////// Dijkstra AREA ///////////////////////
     
     return (
         <>
-        <button
-            onClick={() => visualiseDijkstra()}
-            style={{ margin: '20px', padding: '10px 20px', fontSize: '18px', cursor: 'pointer' }}
-        >
-            Run Dijkstra</button>
+        <div className='button-container'>
+            <button
+                onClick={() => visualiseDijkstra()}
+                /*style={{ margin: '20px', padding: '10px 20px', fontSize: '18px', cursor: 'pointer' }}*/
+            >
+                Run Dijkstra</button>
+            <button
+                onClick={() => clearBoard()}
+            >Clear board</button>
+        </div>
         <div className="grid">
             {grid.map((row, rowIndex) => {
                 return (
                     <div key={rowIndex} className="row">
                         {row.map((node,nodeIndex) => {
-                            return <Node key={nodeIndex} row={node.row} col={node.col}
+                            return <Node key={nodeIndex} row={node.row} col={node.col} weight={node.weight}
                             isStart={node.isStart} isFinish={node.isFinish} isWall={node.isWall}
                             onMouseLeave={() => setMouseIsPressed(false)}
                             onMouseDown={(row, col, e) => handleMouseDown(row, col, e)}
@@ -172,7 +207,14 @@ export default function PathfindingVisualiser() {
                     </div>
                 );
             })}
-        </div></>
+        </div>
+        {pathCost !== null && (
+            <h2 className="info">
+            {pathCost === Infinity ? "There is no path to the destination!"
+                : `Total cost of the path: ${pathCost}`
+            }
+            </h2>)}
+        </>
     )
 
 }
