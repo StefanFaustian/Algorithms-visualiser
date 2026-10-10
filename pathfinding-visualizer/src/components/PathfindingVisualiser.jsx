@@ -4,6 +4,7 @@ import './PathfindingVisualiser.css';
 import { dijkstra, getNodesInShortestPathOrder } from './dijkstra';
 import { bfs } from './bfs';
 import { dfs } from './dfs';
+import { astar } from './astar';
 
 // Defining coordinates for the starting node and the finish node
 const START_NODE_ROW = 0;
@@ -166,6 +167,8 @@ const animateAlgorithm = (visitedNodesInOrder, nodesInShortestPathOrder, cost) =
             visitedNodesInOrder = bfs(cleanGrid, startNode, finishNode);
         else if (algorithm === "DFS") 
             visitedNodesInOrder = dfs(cleanGrid, startNode, finishNode);
+        else if (algorithm === "A*")
+            visitedNodesInOrder = astar(cleanGrid, startNode, finishNode);
 
         const nodesInShortestPathOrder = getNodesInShortestPathOrder(finishNode);
         animateAlgorithm(visitedNodesInOrder, nodesInShortestPathOrder, finishNode.distance);
@@ -186,6 +189,10 @@ const animateAlgorithm = (visitedNodesInOrder, nodesInShortestPathOrder, cost) =
                 onClick={() => visualiseAlgorithm("DFS")}            
             >
                 Run DFS</button>
+            <button
+                onClick={() => visualiseAlgorithm("A*")}            
+            >
+                Run A*</button>    
             <button
                 onClick={() => clearBoard()}
             >Clear board</button>
